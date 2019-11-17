@@ -1,0 +1,18 @@
+[package]
+name = "pmserver"
+version = "0.1.0"
+authors = ["Mateusz Morusiewicz <11313015+Ruteri@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+rusty-leveldb = "0.3.0"
+actix-web = "1.0"
+serde = "1.0.102"
+serde_json = "1.0"
+sha2 = "0.8.0"
+rsa = "0.1.4"
+aes = "0.3.2"
+base64 = "0.11.0"
