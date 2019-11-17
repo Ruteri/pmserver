@@ -6,14 +6,14 @@ pub struct Config {
 }
 
 fn get_session_key_seed() -> Option<String> {
-  return match env::var("SESSION_KEY_SEED") {
+  match env::var("SESSION_KEY_SEED") {
     Ok(seed) => Some(seed),
     Err(_) => None,
   }
 }
 
 fn get_db_path() -> String {
-  return match env::var("DB_PATH") {
+  match env::var("DB_PATH") {
     Ok(path) => path,
     Err(_) => "./data/db".to_string(),
   }
@@ -28,6 +28,6 @@ impl Config {
       None => { return Err("No session key seed specified"); }
     };
 
-    return Ok(Config {db_path, raw_session_key_seed});
+    Ok(Config {db_path, raw_session_key_seed})
   }
 }

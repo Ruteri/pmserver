@@ -39,10 +39,10 @@ fn get_token(state: web::Data<WebState>, data: web::Json<LoginData>) -> impl Res
   }
 
   let crypto = state.crypto.lock().unwrap();
-  return match db.generate_token(&crypto, &data.username) {
+  match db.generate_token(&crypto, &data.username) {
     Ok(token) => HttpResponse::Ok().body(token),
     Err(_) => HttpResponse::InternalServerError().finish(),
-  };
+  }
 }
 
 fn get_state(state: web::Data<WebState>, data: web::Json<TokenSignaturenData>) -> impl Responder {
@@ -54,7 +54,7 @@ fn get_state(state: web::Data<WebState>, data: web::Json<TokenSignaturenData>) -
 
   /* if token.exp_time > t.now() delete token and return error */
 
-  return match db.get_state(&token.username) {
+  match db.get_state(&token.username) {
     Some(state) => HttpResponse::Ok().body(state),
     None => HttpResponse::BadRequest().finish(),
   }
@@ -70,7 +70,7 @@ fn store_state(state: web::Data<WebState>, data: web::Json<StoreStateData>) -> i
 
   /* if token.exp_time > t.now() delete token and return error */
 
-  return match db.store_state(&token.username, &data.state) {
+  match db.store_state(&token.username, &data.state) {
     Ok(_) => HttpResponse::Ok().finish(),
     Err(_) => HttpResponse::InternalServerError().finish(),
   }

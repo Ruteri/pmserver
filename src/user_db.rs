@@ -31,7 +31,7 @@ impl UserDB {
         Err(e) => { panic!("failed to open database: {:?}", e) }
     };
 
-    return UserDB { db }
+    UserDB { db }
   }
 }
 
@@ -39,17 +39,17 @@ unsafe impl Send for UserDB {}
 unsafe impl Sync for UserDB {}
 
 impl UserDB {
-  pub fn get_user_pw_hash(&mut self, username: &String) -> Option<String> {
+  pub fn get_user_pw_hash(&mut self, username: &str) -> Option<String> {
     let user_key = format!("users:{}:password", username);
 
     let raw_value = self.db.get(user_key.as_bytes())?;
-    return match std::str::from_utf8(&raw_value) {
+    match std::str::from_utf8(&raw_value) {
       Ok(value) => Some(value.to_string()),
       Err(_) => None
     }
   }
 
-  pub fn generate_token(&mut self, crypto: &Crypto, username: &String) -> Result<String, &'static str> {
+  pub fn generate_token(&mut self, crypto: &Crypto, username: &str) -> Result<String, &'static str> {
     let token = Token { username: username.to_string(), exp_time: /* now + a week or so */ 0 };
     let serialized_token = match serde_json::to_vec(&token) {
       Ok(serialized_token) => serialized_token,
@@ -60,43 +60,43 @@ impl UserDB {
     let encoded_token_signature = base64::encode(&token_signature);
     let token_key = format!("tokens:{}", encoded_token_signature);
 
-    if let Err(_) = self.db.put(token_key.as_bytes(), &serialized_token) {
+    if self.db.put(token_key.as_bytes(), &serialized_token).is_err() {
       return Err("Internal database error");
     }
 
-    return match self.db.flush() {
+    match self.db.flush() {
       Ok(_) => Ok(encoded_token_signature),
       Err(_) => Err("Internal database error"),
     }
   }
 
-  pub fn get_token(&mut self, signature: &String) -> Option<Token> {
+  pub fn get_token(&mut self, signature: &str) -> Option<Token> {
     let token_key = format!("tokens:{}", signature);
     let raw_value = self.db.get(token_key.as_bytes())?;
-    return match serde_json::from_slice(&raw_value) {
+    match serde_json::from_slice(&raw_value) {
       Ok(token) => Some(token),
       Err(_) => None
     }
   }
 
-  pub fn get_state(&mut self, username: &String) -> Option<String> {
+  pub fn get_state(&mut self, username: &str) -> Option<String> {
     let state_key = format!("users:{}:state", username);
     let raw_state = self.db.get(state_key.as_bytes())?;
-    return Some(base64::encode(&raw_state));
+    Some(base64::encode(&raw_state))
   }
 
-  pub fn store_state(&mut self, username: &String, state: &String) -> Result<(), &'static str> {
+  pub fn store_state(&mut self, username: &str, state: &str) -> Result<(), &'static str> {
     let state_key = format!("users:{}:state", username);
     let encoded_state = match base64::decode(state) {
       Ok(encoded_state) => encoded_state,
       Err(_) => { return Err("Invalid encoding"); },
     };
 
-    if let Err(_) = self.db.put(state_key.as_bytes(), &encoded_state) {
+    if self.db.put(state_key.as_bytes(), &encoded_state).is_err() {
       return Err("Internal database error");
     }
 
-    return match self.db.flush() {
+    match self.db.flush() {
       Ok(_) => Ok(()),
       Err(_) => Err("Internal database error"),
     }
