@@ -1,6 +1,7 @@
 use rusty_leveldb::{DB, Options};
 use serde::{Serialize, Deserialize};
 use std::marker::{Send, Sync};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::config::Config;
 use crate::crypto::Crypto;
@@ -18,7 +19,7 @@ pub struct Token {
 }
 
 pub struct UserDB {
-  db: DB,
+  pub db: DB,
 }
 
 impl UserDB {
@@ -39,21 +40,23 @@ unsafe impl Send for UserDB {}
 unsafe impl Sync for UserDB {}
 
 impl UserDB {
-  pub fn get_user_pw_hash(&mut self, username: &str) -> Option<String> {
+  pub fn get_user_pw_hash(&mut self, username: &str) -> Option<Vec<u8>> {
     let user_key = format!("users:{}:password", username);
 
     let raw_value = self.db.get(user_key.as_bytes())?;
-    match std::str::from_utf8(&raw_value) {
-      Ok(value) => Some(value.to_string()),
-      Err(_) => None
-    }
+    Some(raw_value)
   }
 
   pub fn generate_token(&mut self, crypto: &Crypto, username: &str) -> Result<String, &'static str> {
-    let token = Token { username: username.to_string(), exp_time: /* now + a week or so */ 0 };
+    let unix_time_now = match SystemTime::now().duration_since(UNIX_EPOCH) {
+      Ok(t) => t.as_secs(),
+      Err(_) => return Err("Internal error"),
+    };
+
+    let token = Token { username: username.to_string(), exp_time: /* now + a week */ unix_time_now + 604800 };
     let serialized_token = match serde_json::to_vec(&token) {
       Ok(serialized_token) => serialized_token,
-      Err(_) => { return Err("Internal database error"); }
+      Err(_) => return Err("Internal database error"),
     };
 
     let token_signature = crypto.sign(&serialized_token);
@@ -70,13 +73,26 @@ impl UserDB {
     }
   }
 
-  pub fn get_token(&mut self, signature: &str) -> Option<Token> {
+  pub fn validate_token(&mut self, signature: &str) -> Option<Token> {
     let token_key = format!("tokens:{}", signature);
     let raw_value = self.db.get(token_key.as_bytes())?;
-    match serde_json::from_slice(&raw_value) {
-      Ok(token) => Some(token),
-      Err(_) => None
+
+    let token: Token = match serde_json::from_slice(&raw_value) {
+      Ok(token) => token,
+      Err(_) => return None,
+    };
+
+    let time_now = match SystemTime::now().duration_since(UNIX_EPOCH) {
+      Ok(t) => t.as_secs(),
+      Err(_) => return None,
+    };
+
+    if time_now > token.exp_time {
+      /* TODO: soft delete token */
+      return None
     }
+
+    Some(token)
   }
 
   pub fn get_state(&mut self, username: &str) -> Option<String> {
@@ -89,7 +105,7 @@ impl UserDB {
     let state_key = format!("users:{}:state", username);
     let encoded_state = match base64::decode(state) {
       Ok(encoded_state) => encoded_state,
-      Err(_) => { return Err("Invalid encoding"); },
+      Err(_) => return Err("Invalid encoding"),
     };
 
     if self.db.put(state_key.as_bytes(), &encoded_state).is_err() {

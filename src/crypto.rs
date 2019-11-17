@@ -21,12 +21,24 @@ impl Crypto {
     Ok(Crypto { session_key })
   }
 
-  pub fn sign(&self, to_sign: &[u8]) -> Vec<u8> {
+  pub fn hash256(to_hash: &[u8]) -> Vec<u8> {
     let mut hasher = Sha256::default();
-    hasher.input(to_sign);
-    let hash = hasher.result();
-    // let mut hash_block = GenericArray::clone_from_slice(hash.as_slice());
-    // self.session_key.encrypt_block(hash.as_mut_slice());
+    hasher.input(to_hash);
+    hasher.result().to_vec()
+  }
+
+  pub fn sign(&self, to_sign: &[u8]) -> Vec<u8> {
+    let mut hash = Crypto::hash256(to_sign);
+
+    {
+      let mut hash_block_l = GenericArray::from_mut_slice(&mut hash[..16]);
+      self.session_key.encrypt_block(&mut hash_block_l);
+    }
+    {
+      let mut hash_block_h = GenericArray::from_mut_slice(&mut hash[16..]);
+      self.session_key.encrypt_block(&mut hash_block_h);
+    }
+
     hash.to_vec()
   }
 }

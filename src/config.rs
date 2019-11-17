@@ -25,7 +25,7 @@ impl Config {
 
     let raw_session_key_seed = match get_session_key_seed() {
       Some(value) => value,
-      None => { return Err("No session key seed specified"); }
+      None => return Err("No session key seed specified"),
     };
 
     Ok(Config {db_path, raw_session_key_seed})

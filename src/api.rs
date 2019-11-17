@@ -28,13 +28,18 @@ struct WebState {
 }
 
 fn get_token(state: web::Data<WebState>, data: web::Json<LoginData>) -> impl Responder {
+  let user_provided_password = match base64::decode(&data.password) {
+    Ok(pass) => pass,
+    Err(_) => return HttpResponse::BadRequest().finish(),
+  };
+
   let mut db = state.db.lock().unwrap();
   let pw_hash = match db.get_user_pw_hash(&data.username) {
     Some(pw_hash) => pw_hash,
-    None => { return HttpResponse::Unauthorized().finish() },
+    None => return HttpResponse::Unauthorized().finish(),
   };
 
-  if pw_hash != /* TODO: hash of */ data.password {
+  if pw_hash != Crypto::hash256(&user_provided_password) {
     return HttpResponse::Unauthorized().finish();
   }
 
@@ -47,12 +52,10 @@ fn get_token(state: web::Data<WebState>, data: web::Json<LoginData>) -> impl Res
 
 fn get_state(state: web::Data<WebState>, data: web::Json<TokenSignaturenData>) -> impl Responder {
   let mut db = state.db.lock().unwrap();
-  let token = match db.get_token(&data.token) {
+  let token = match db.validate_token(&data.token) {
     Some(token) => token,
-    None => { return HttpResponse::Unauthorized().finish() },
+    None => return HttpResponse::Unauthorized().finish(),
   };
-
-  /* if token.exp_time > t.now() delete token and return error */
 
   match db.get_state(&token.username) {
     Some(state) => HttpResponse::Ok().body(state),
@@ -63,9 +66,9 @@ fn get_state(state: web::Data<WebState>, data: web::Json<TokenSignaturenData>) -
 fn store_state(state: web::Data<WebState>, data: web::Json<StoreStateData>) -> impl Responder {
   let mut db = state.db.lock().unwrap();
 
-  let token = match db.get_token(&data.token) {
+  let token = match db.validate_token(&data.token) {
     Some(token) => token,
-    None => { return HttpResponse::Unauthorized().finish() },
+    None => return HttpResponse::Unauthorized().finish(),
   };
 
   /* if token.exp_time > t.now() delete token and return error */
