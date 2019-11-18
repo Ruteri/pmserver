@@ -40,6 +40,24 @@ unsafe impl Send for UserDB {}
 unsafe impl Sync for UserDB {}
 
 impl UserDB {
+  pub fn register_user(&mut self, username: &str, password: &[u8]) -> Result<(), &'static str> {
+    let user_key = format!("users:{}:password", username);
+
+    if self.db.get(user_key.as_bytes()).is_some() {
+      return Err("User already exists");
+    }
+
+    let pw_hash = Crypto::hash256(password);
+    if self.db.put(user_key.as_bytes(), &pw_hash).is_err() {
+      return Err("Internal database error");
+    }
+
+    match self.db.flush() {
+      Ok(_) => Ok(()),
+      Err(_) => Err("Internal database error"),
+    }
+  }
+
   pub fn get_user_pw_hash(&mut self, username: &str) -> Option<Vec<u8>> {
     let user_key = format!("users:{}:password", username);
 

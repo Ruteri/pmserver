@@ -8,7 +8,7 @@ use crate::crypto::Crypto;
 #[derive(Deserialize)]
 struct LoginData {
   username: String,
-  password: String
+  password: String,
 }
 
 #[derive(Deserialize)]
@@ -20,6 +20,12 @@ struct TokenSignaturenData {
 struct StoreStateData {
   token: String, /* base64-encoded string */
   state: String, /* base64-encoded string */
+}
+
+#[derive(Deserialize)]
+struct RegisterUserData {
+  username: String,
+  password: String,
 }
 
 struct WebState {
@@ -79,15 +85,30 @@ fn store_state(state: web::Data<WebState>, data: web::Json<StoreStateData>) -> i
   }
 }
 
+fn register_user(state: web::Data<WebState>, data: web::Json<RegisterUserData>) -> impl Responder {
+  let user_provided_password = match base64::decode(&data.password) {
+    Ok(pass) => pass,
+    Err(_) => return HttpResponse::BadRequest().body("Invalid password"),
+  };
+
+  let mut db = state.db.lock().unwrap();
+
+  match db.register_user(&data.username, &user_provided_password) {
+    Ok(_) => HttpResponse::Ok().finish(),
+    Err(e) => HttpResponse::InternalServerError().body(e),
+  }
+}
+
 pub fn run(crypto: Crypto, db: UserDB) {
   let db_web_state: web::Data<WebState> = web::Data::new(WebState { db: Mutex::new(db), crypto: Mutex::new(crypto) });
 
   HttpServer::new(move || {
       App::new()
         .register_data(db_web_state.clone())
-        .route("/token", web::post().to(get_token))
+        .route("/token", web::get().to(get_token))
         .route("/users/data", web::get().to(get_state))
         .route("/users/data", web::post().to(store_state))
+        .route("/users", web::post().to(register_user))
     })
     .bind("127.0.0.1:8080")
     .unwrap()
