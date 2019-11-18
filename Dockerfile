@@ -16,3 +16,5 @@ COPY src src
 RUN nix-build
 RUN nix-store --gc
 RUN nix-store --optimize
+
+RUN nix-env -f default.nix -i pmserver
