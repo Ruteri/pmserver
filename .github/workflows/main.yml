@@ -1,11 +1,9 @@
 name: Nix-CI
 
 on:
-  push:
-    branches:
-    - actions-tryout
-    - master
-    - release/*
+  create:
+    tags:
+      - v*
 
 jobs:
   build:
@@ -24,4 +22,4 @@ jobs:
       env:
         CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       run:
-        nix-build | cachix push ruteri
+        nix-build --cores 2 | cachix push ruteri

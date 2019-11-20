@@ -11,12 +11,16 @@ Nix package: `nix-build`.
 
 
 Install nix package:
- * from source: `nix-env -f default.nix -i pmserver`,
- * from cachix (from within a cloned repo): ```
+ * from source:
+```
+nix-env -f default.nix -i pmserver
+```,
+ * from cachix (from within a cloned repo):
+```
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use ruteri
 nix-env -bif default.nix pmserver
-```
+```.
 
 
 Docker minimal (~30MB) runtime container: `nix-build docker.nix`.
