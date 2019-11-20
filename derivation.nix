@@ -3,7 +3,7 @@
 rustPlatform.buildRustPackage rec {
   name = "pmserver-${version}";
   version = "0.1.0";
-  src = ./.;
+  src = builtins.path { path = ./.; name = "source"; };
   buildInputs = [];
 
   checkPhase = "";
