@@ -21,6 +21,6 @@ jobs:
         nix-env -iA cachix -f https://cachix.org/api/v1/install
     - name: Build and push
       env:
-        CACHIX_SIGNING_KEY=${{ secrets.CACHIX_SIGNING_KEY }}
+        CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       run:
         nix-build | cachix push ruteri
