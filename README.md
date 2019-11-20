@@ -10,10 +10,13 @@ Rust binary: `cargo build`.
 Nix package: `nix-build`.
 
 
-Install nix package: `nix-env -f default.nix -i pmserver`.
+Install nix package into env: `nix-env -f default.nix -i pmserver`.
 
 
-NixOS-based docker builder (not for use as runtime container) `docker build -t pmserver:<version> .`.
+Docker minimal (~30MB) runtime container: `nix-build docker.nix`.
+
+
+NixOS-based docker builder (not for use as runtime container) `docker build -t pmserver .`.
 
 
 ### Running
