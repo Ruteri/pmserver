@@ -5,4 +5,4 @@ let
       (import ./overlay.nix)
     ];
   };
-in pkgs.pmserver
+in pkgs

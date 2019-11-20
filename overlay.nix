@@ -1,3 +1,4 @@
 self: super: {
-  pmserver = self.callPackage ./derivation.nix {};
+  pmserver = self.callPackage ./pmserver.nix {};
+  pmserver-docker = self.callPackage ./pmserver-docker.nix {};
 }

@@ -1,25 +1,61 @@
 name: Nix-CI
 
 on:
+  push:
+    branches:
+    - ci*
   create:
     tags:
       - v*
 
 jobs:
-  build:
-
+  build-nix:
     runs-on: ubuntu-latest
-
     container: nixos/nix
 
     steps:
     - uses: actions/checkout@v1
-    - run: set -e
-    - name: Install cachix
-      run:
+    - name: Setup cachix
+      run: |
         nix-env -iA cachix -f https://cachix.org/api/v1/install
+        cachix use ruteri
     - name: Build and push
       env:
         CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
-      run:
-        nix-build --cores 2 | cachix push ruteri
+      run: |
+        cachix push ruteri --watch-store &
+        nix-build --cores 2 -A pmserver
+
+  build-and-push-image:
+    needs: [build-nix]
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '270.0.0'
+        service_account_email: ${{ secrets.GKE_EMAIL }}
+        service_account_key: ${{ secrets.GKE_KEY }}
+
+    - name: Authorize docker
+      run: |
+        gcloud auth print-access-token | \
+          sudo -E docker login -u oauth2accesstoken --password-stdin https://eu.gcr.io/"${{ secrets.GKE_PROJECT }}"
+
+    - name: Setup cachix
+      run: |
+        nix-env -iA cachix -f https://cachix.org/api/v1/install
+        cachix use ruteri
+
+    - name: Build and tag image
+      run: |
+        cachix push ruteri --watch-store &
+        nix-build --cores 2 --option system-features kvm -A pmserver-docker
+        IMAGE=$(sudo -E docker load < result | awk '{print $3}')
+        sudo -E docker tag $IMAGE eu.gcr.io/"${{ secrets.GKE_PROJECT }}"/pmserver:"$GITHUB_SHA"
+
+    - name: Push the image
+      run: |
+        sudo -E docker push eu.gcr.io/"${{ secrets.GKE_PROJECT }}"/pmserver:"$GITHUB_SHA"

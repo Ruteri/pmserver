@@ -1,15 +1,10 @@
 { nixpkgs ? <nixpkgs>
 , system ? builtins.currentSystem
+, pmserver
 }:
 
 let
   pkgs = import nixpkgs { inherit system; };
-
-  callPackage = pkgs.lib.callPackageWith (pkgs // pkgs.xlibs // self);
-
-  self = rec {
-    pmserver = callPackage ./derivation.nix { };
-  };
 
   entrypoint = pkgs.writeScript "entrypoint.sh" ''
     #!${pkgs.stdenv.shell}
@@ -24,7 +19,7 @@ pkgs.dockerTools.buildImage {
     ${pkgs.dockerTools.shadowSetup}
   '';
 
-  contents = [ self.pmserver ];
+  contents = [ pmserver ];
 
   config = {
     Cmd = [ "pmserver" ];

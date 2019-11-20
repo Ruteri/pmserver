@@ -5,8 +5,8 @@ Basic user state server for [hdpwm](https://github.com/Ruteri/hdpwm)
 ### Compilation
 
 * rust binary: `cargo build`,
-* nix package: `nix-build`,
-* minimal docker (~30MB) runtime container: `nix-build docker.nix`.
+* nix package: `nix-build -A pmserver`,
+* minimal docker (~30MB) runtime container: `nix-build -A pmserver-docker && docker load < result`.
 * NixOS-based docker builder `docker build -t pmserver .`.
 
 
@@ -16,14 +16,14 @@ The following assumes a cloned repo: `git clone https://github.com/ruteri/pmserv
 
 * from source:
 ```
-nix-env -f default.nix -i pmserver
+nix-env -f default.nix -iA pmserver
 ```
 
 * from cachix:
 ```
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 cachix use ruteri
-nix-env -bif default.nix pmserver
+nix-env -bif default.nix -A pmserver
 ```
 
 
