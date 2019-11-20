@@ -1,0 +1,25 @@
+name: Nix-CI
+
+on:
+  create:
+    tags:
+      - v*
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    container: nixos/nix
+
+    steps:
+    - uses: actions/checkout@v1
+    - run: set -e
+    - name: Install cachix
+      run:
+        nix-env -iA cachix -f https://cachix.org/api/v1/install
+    - name: Build and push
+      env:
+        CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
+      run:
+        nix-build --cores 2 | cachix push ruteri
