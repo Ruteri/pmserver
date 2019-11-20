@@ -14,12 +14,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Build and push nix derivation
-      uses: docker://nixos/nix
     - name: Install cachix
+      container: nixos/nix
       run:
         nix-env -iA cachix -f https://cachix.org/api/v1/install
     - name: Build and push
+      container: nixos/nix
       env:
         CACHIX_SIGNING_KEY=${{ secrets.CACHIX_SIGNING_KEY }}
       run:
